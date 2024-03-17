@@ -11,7 +11,7 @@ This project is a real-time chat code that registered and non-registered users c
 
 ## Image
 Tickets Image
-![Tickets Image](https://github.com/mojikarimi/gitshop_project_django/blob/master/Media/ImageForGit/tickets.png)
+![Tickets Image](https://github.com/mojikarimi/django-chat-real-time.git/blob/master/image/chat.png)
 
 
 # Site implementation steps
