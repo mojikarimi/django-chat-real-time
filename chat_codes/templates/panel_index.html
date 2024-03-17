@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block conetnt %}
+    <script src="{% static 'helpers/ckeditor/ckeditor.js' %}"></script>
+    <div class="container">
+        <div class="panel messages-panel">
+            <div class="contacts-list">
+
+                <div class="tab-content">
+                    <div id="inbox" class="contacts-outter-wrapper tab-pane active">
+                        <div class="contacts-outter">
+                            <ul class="list-unstyled contacts">
+                                {% if rooms %}
+                                    {% for room in rooms %}
+                                        <li data-toggle="tab" data-target="#inbox-message-{{ room.pk }}">
+                                            <div class="vcentered info-combo">
+                                                <h3 class="no-margin-bottom name"> {{ room.user }} </h3>
+                                            </div>
+                                        </li>
+                                    {% endfor %}
+                                {% endif %}
+
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="tab-content">
+                {% if rooms %}
+                    {% for room in rooms %}
+                        <div class="tab-pane message-body" id="inbox-message-{{ room.pk }}">
+                            <div class="message-top">
+                                <a href="javascript:void(0)" class="btn btn btn-success new-message"> {{ room.user }}
+                                </a>
+                            </div>
+                            <div class="message-chat">
+                                <div id="message-{{ room.pk }}" class="chat-body">
+                                    {% if chats %}
+                                        {% for chat in chats %}
+                                            {% if chat.room_id == room.pk %}
+                                                {% if chat.type == 'client' %}
+                                                    <div class="message info">
+                                                        <div class="message-body">
+                                                            <div class="message-info">
+                                                                <h4> User </h4>
+                                                                <h5><i class="fa fa-clock-o"></i> {{ chat.date }} </h5>
+                                                            </div>
+                                                            <hr>
+                                                            <div class="message-text">
+                                                                {{ chat.text|safe }}
+                                                            </div>
+                                                        </div>
+                                                        <br>
+                                                    </div>
+                                                {% else %}
+                                                    <div class="message my-message">
+                                                        <div class="message-body">
+                                                            <div class="message-body-inner">
+                                                                <div class="message-info">
+                                                                    <h4> Admin </h4>
+                                                                    <h5><i class="fa fa-clock-o"></i> {{ chat.date }}
+                                                                    </h5>
+                                                                </div>
+                                                                <hr>
+                                                                <div class="message-text">
+                                                                    {{ chat.text |safe }}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <br>
+                                                    </div>
+                                                {% endif %}
+                                            {% endif %}
+
+                                        {% endfor %}
+                                    {% endif %}
+                                </div>
+                                <div class="chat-footer">
+                                    <textarea name="text-{{ room.pk }}"
+                                              id="text-{{ room.pk }}"
+                                              class="send-message-text"></textarea>
+
+                                    <script>
+                                        CKEDITOR.replace('text-{{ room.pk }}')
+                                    </script>
+
+                                    <button style="right: 40px" onclick="send(`{{ room.pk }}`)" type="button"
+                                            class="send-message-button btn-info"><i
+                                            class="fa fa-send"></i></button>
+                                    <script>
+                                        CKEDITOR.instances["text-{{ room.pk }}"].on('key', function (evt) {
+                                            var kc = evt.data.keyCode,
+                                                csa = ~(CKEDITOR.CTRL | CKEDITOR.SHIFT | CKEDITOR.ALT);
+                                            if (kc === 1114125) {
+                                                send(`{{ room.pk }}`)
+                                            }
+                                            // kc & csa is what you need
+                                        });
+                                    </script>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+            </div>
+        </div>
+    </div>
+    <script>
+        setInterval(function () {
+            $.ajax({
+                url: '{% url 'panel_update_message' %}',
+                type: 'POST',
+                data: {
+                    'csrfmiddlewaretoken': '{{ csrf_token }}',
+                    'messages': '',
+                },
+                success: function (data) {
+                    console.log(data)
+                    const data_message = JSON.parse(data.data)
+                    let i;
+                    let number = data_message.length;
+                    for (i = 0; i < number; i++) {
+                        console.log(data_message[i])
+                        console.log(`message-${data_message[i].fields.room_id}`);
+                        document.querySelector(`#message-${data_message[i].fields.room_id}`).innerHTML += `<div class="message info">
+                                <div class="message-body">
+                                    <div class="message-info">
+                                        <h4> Client </h4>
+                                        <h5><i class="fa fa-clock-o"></i> ${data_message[i].fields.date} </h5>
+                                    </div>
+                                    <hr>
+                                    <div class="message-text">${data_message[i].fields.text}
+                                    </div>
+                                </div>
+                                <br>
+                            </div>`
+
+                    }
+
+                },
+                error: {},
+            })
+        }, 1000);
+
+        function send(room_pk) {
+            const message = CKEDITOR.instances[`text-${room_pk}`].getData();
+
+            $.ajax({
+                url: '{% url 'panel_add_message' %}',
+                type: 'POST',
+                data: {
+                    'csrfmiddlewaretoken': '{{ csrf_token }}',
+                    'message': message,
+                    'room_id': room_pk,
+                },
+                success: function (data) {
+                    const data_message = JSON.parse(data.data)
+                    document.querySelector(`#message-${room_pk}`).innerHTML += `<div class="message my-message">
+                            <div class="message-body">
+                                <div class="message-body-inner">
+                                    <div class="message-info">
+                                        <h4> Admin </h4>
+                                        <h5><i class="fa fa-clock-o"></i> ${data_message[0].fields.date} </h5>
+                                    </div>
+                                    <hr>
+                                    <div class="message-text">
+                                         ${data_message[0].fields.text}
+                                    </div>
+                                </div>
+                            </div>
+                            <br>
+</div>`
+                    CKEDITOR.instances[`text-${room_pk}`].setData('')
+                }
+            })
+        }
+    </script>
+{% endblock %}
